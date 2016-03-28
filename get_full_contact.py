@@ -32,31 +32,31 @@ try:
     conn = client.connect()
     result = list()
     sorted = list()
-    ou = ""
+    dn = "dc=irf,dc=local"
     if args.organizational_unit:
-        have_this = conn.search("dc=irf,dc=local", 2, "(&(objectClass=organizationalUnit)(ou=" + args.organizational_unit + "))",
-                                attrlist=['ou']);
+        have_this = conn.search(args.organizational_unit, 2, "(&(objectClass=organizationalUnit))");
         if not have_this:
-            raise Exception("the specified organizational unit does not exist")
+            raise Exception("the specified DN does not exist not an organizational unit")
         else:
-            ou = "ou=" + have_this[0]['ou'][0] + ","
-            print(ou)
+            dn = args.organizational_unit
 
-    result = conn.search(ou + "dc=irf,dc=local" , 2,
+    result = conn.search(dn , 2,
     "(&(objectClass=person)(telephoneNumber=*" + args.phone_number + "*))",
-    attrlist=['ou','givenName', 'sn', 'telephoneNumber', 'description']);
+    attrlist=['givenName', 'sn', 'telephoneNumber']);
 
-    #sort
+    #sort results and format
     for res in result:
-        sorted.append(res['givenName'][0] + ":" + res['sn'][0] + ":" + res['telephoneNumber'][0] + ":" + res['description'][0])
+        printOu=(res.dn.__getitem__(1)).split("=")
+        if printOu[0] != "ou":
+            printOu[1] = ""
+        sorted.append(res['givenName'][0] + ":" + res['sn'][0] + ":" + res['telephoneNumber'][0] + ":" +  printOu[1])
     sorted.sort()
 
     #create XML file
     users = ET.Element("users")
-
     for members in sorted:
         parts = members.split(":")
-        print(parts)
+        #print(parts)
         user = ET.SubElement(users,"user", organizational_unit=parts[3])
         ET.SubElement(user,"givenName").text = parts[0]
         ET.SubElement(user,"surname").text = parts[1]
